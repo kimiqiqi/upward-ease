@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useMemo, useState } from "react";
 import { mockVideos } from "@/lib/mock";
 import type { Video } from "@/lib/types";
@@ -13,7 +14,10 @@ function uniqTags(videos: Video[]) {
 
 export default function GalleryPage() {
   const approved = useMemo(
-    () => mockVideos.filter((v) => v.status === "approved").sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
+    () =>
+      mockVideos
+        .filter((v) => v.status === "approved")
+        .sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
     []
   );
 
@@ -30,6 +34,7 @@ export default function GalleryPage() {
         v.title.toLowerCase().includes(query) ||
         v.description.toLowerCase().includes(query) ||
         v.tags.some((t) => t.toLowerCase().includes(query));
+
       const matchesTag = !tag || v.tags.includes(tag);
       return matchesQuery && matchesTag;
     });
@@ -54,22 +59,29 @@ export default function GalleryPage() {
           />
 
           <div className="text-sm text-slate-600">
-            Showing <span className="font-medium text-slate-900">{filtered.length}</span> videos
+            Showing{" "}
+            <span className="font-medium text-slate-900">{filtered.length}</span>{" "}
+            videos
           </div>
         </div>
 
         <div className="mt-4 flex flex-wrap gap-2">
           <button
             onClick={() => setTag("")}
-            className={`rounded-full border px-3 py-1 text-xs ${tag === "" ? "bg-slate-900 text-white" : "bg-slate-50"}`}
+            className={`rounded-full border px-3 py-1 text-xs ${
+              tag === "" ? "bg-slate-900 text-white" : "bg-slate-50"
+            }`}
           >
             All
           </button>
+
           {allTags.map((t) => (
             <button
               key={t}
               onClick={() => setTag(t)}
-              className={`rounded-full border px-3 py-1 text-xs ${tag === t ? "bg-slate-900 text-white" : "bg-slate-50"}`}
+              className={`rounded-full border px-3 py-1 text-xs ${
+                tag === t ? "bg-slate-900 text-white" : "bg-slate-50"
+              }`}
             >
               {t}
             </button>
@@ -79,7 +91,11 @@ export default function GalleryPage() {
 
       <div className="grid gap-4 md:grid-cols-2">
         {filtered.map((v) => (
-          <VideoCard key={v.id} video={v} />
+          <Link key={v.id} href={`/gallery/${v.id}`} className="block">
+            <div className="transition hover:-translate-y-0.5 hover:shadow-sm">
+              <VideoCard video={v} />
+            </div>
+          </Link>
         ))}
       </div>
     </div>

@@ -8,7 +8,9 @@ export default function VideoDetailPage({
   params: { id: string };
 }) {
   // Only allow approved videos in public detail page
-  const video = mockVideos.find((v) => v.id === params.id && v.status === "approved");
+  const video = mockVideos.find(
+    (v) => v.id === params.id && v.status === "approved"
+  );
   if (!video) return notFound();
 
   return (
@@ -25,19 +27,25 @@ export default function VideoDetailPage({
 
         <div className="mt-4 flex flex-wrap gap-2">
           {video.tags.map((t) => (
-            <span key={t} className="rounded-full border bg-slate-50 px-3 py-1 text-xs">
+            <span
+              key={t}
+              className="rounded-full border bg-slate-50 px-3 py-1 text-xs"
+            >
               {t}
             </span>
           ))}
         </div>
 
         <div className="mt-4 text-sm text-slate-600">
-          {video.gradeLevel ? <span className="mr-3">Grade: {video.gradeLevel}</span> : null}
+          {video.gradeLevel ? (
+            <span className="mr-3">Grade: {video.gradeLevel}</span>
+          ) : null}
           {video.schoolType ? <span>School: {video.schoolType}</span> : null}
         </div>
 
         <p className="mt-4 text-xs text-slate-500">
-          (Mock detail page for V1. Later we’ll show real video playback from Cloudinary.)
+          (Mock detail page for V1. Later we’ll show real video playback from
+          Cloudinary.)
         </p>
       </div>
     </div>

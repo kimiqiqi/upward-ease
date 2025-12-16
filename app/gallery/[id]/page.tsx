@@ -2,15 +2,14 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { mockVideos } from "@/lib/mock";
 
-export default function VideoDetailPage({
+export default async function VideoDetailPage({
   params,
 }: {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }) {
-  // Only allow approved videos in public detail page
-  const video = mockVideos.find(
-    (v) => v.id === params.id && v.status === "approved"
-  );
+  const { id } = await params;
+
+  const video = mockVideos.find((v) => v.id === id && v.status === "approved");
   if (!video) return notFound();
 
   return (

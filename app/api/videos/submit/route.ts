@@ -10,10 +10,12 @@ export async function POST(req: Request) {
   const tags = Array.isArray(body.tags) ? body.tags.map(String).filter(Boolean) : [];
   const gradeLevel = String(body.gradeLevel ?? "").trim();
   const schoolType = String(body.schoolType ?? "").trim();
+  const videoUrl = String(body.videoUrl ?? "").trim(); // NEW
 
   if (!title) return NextResponse.json({ error: "Title is required" }, { status: 400 });
   if (!description) return NextResponse.json({ error: "Description is required" }, { status: 400 });
   if (tags.length === 0) return NextResponse.json({ error: "At least 1 tag is required" }, { status: 400 });
+  if (!videoUrl) return NextResponse.json({ error: "videoUrl is required" }, { status: 400 });
 
   const { data, error } = await supabaseAdmin
     .from("videos")
@@ -24,7 +26,7 @@ export async function POST(req: Request) {
       grade_level: gradeLevel || null,
       school_type: schoolType || null,
       status: "pending",
-      video_url: null,
+      video_url: videoUrl, // NEW
     })
     .select("id")
     .single();

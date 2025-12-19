@@ -39,44 +39,83 @@ export default function SubmitPage() {
     setForm((prev) => ({ ...prev, [key]: value }));
   }
 
-  async function onSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    setError("");
+async function onSubmit(e: React.FormEvent) {
+  e.preventDefault();
+  setError("");
 
-    if (!form.title.trim()) return setError("Title is required.");
-    if (!form.description.trim()) return setError("Description is required.");
-    if (tags.length === 0) return setError("Please add at least 1 tag (comma-separated).");
-    if (!form.videoFile) return setError("Please choose a video file.");
-    if (!form.videoFile.type.startsWith("video/")) return setError("Selected file is not a video.");
+  if (!form.title.trim()) return setError("Title is required.");
+  if (!form.description.trim()) return setError("Description is required.");
+  if (tags.length === 0) return setError("Please add at least 1 tag (comma-separated).");
+  if (!form.videoFile) return setError("Please choose a video file.");
+  if (!form.videoFile.type.startsWith("video/")) return setError("Selected file is not a video.");
 
-    setIsSubmitting(true);
-
-    try {
-      const res = await fetch("/api/videos/submit", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          title: form.title,
-          description: form.description,
-          tags,
-          gradeLevel: form.gradeLevel,
-          schoolType: form.schoolType,
-          // video file upload comes next step (Cloudinary)
-        }),
-      });
-
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        throw new Error(data?.error || "Submit failed");
-      }
-
-      router.push("/submit/thanks");
-    } catch (err: any) {
-      setError(err?.message ?? "Submit failed");
-    } finally {
-      setIsSubmitting(false);
-    }
+  // simple size guard (adjust later)
+  const MAX_MB = 50;
+  if (form.videoFile.size > MAX_MB * 1024 * 1024) {
+    return setError(`Video is too large. Please keep it under ${MAX_MB}MB for now.`);
   }
+
+  setIsSubmitting(true);
+
+  try {
+    // 1) get signature from our server
+    const signRes = await fetch("/api/cloudinary/sign", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ folder: "upwardease/videos" }),
+    });
+
+    const signData = await signRes.json().catch(() => ({}));
+    if (!signRes.ok) throw new Error(signData?.error || "Failed to get upload signature");
+
+    const { cloudName, apiKey, timestamp, folder, signature } = signData;
+
+    // 2) upload directly to Cloudinary
+    const fd = new FormData();
+    fd.append("file", form.videoFile);
+    fd.append("api_key", apiKey);
+    fd.append("timestamp", String(timestamp));
+    fd.append("signature", signature);
+    fd.append("folder", folder);
+
+    const uploadRes = await fetch(
+      `https://api.cloudinary.com/v1_1/${cloudName}/video/upload`,
+      { method: "POST", body: fd }
+    );
+
+    const uploadData = await uploadRes.json().catch(() => ({}));
+    if (!uploadRes.ok) {
+      throw new Error(uploadData?.error?.message || "Cloudinary upload failed");
+    }
+
+    const videoUrl = uploadData.secure_url as string;
+    if (!videoUrl) throw new Error("Missing secure_url from Cloudinary");
+
+    // 3) save metadata + videoUrl to Supabase via our API
+    const res = await fetch("/api/videos/submit", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        title: form.title,
+        description: form.description,
+        tags,
+        gradeLevel: form.gradeLevel,
+        schoolType: form.schoolType,
+        videoUrl,
+      }),
+    });
+
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data?.error || "Submit failed");
+
+    router.push("/submit/thanks");
+  } catch (err: any) {
+    setError(err?.message ?? "Submit failed");
+  } finally {
+    setIsSubmitting(false);
+  }
+}
+
 
   return (
     <div className="space-y-6">

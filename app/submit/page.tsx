@@ -9,7 +9,7 @@ type FormState = {
   tagsText: string; // comma-separated
   gradeLevel: string;
   schoolType: string;
-  videoFile: File | null;
+  videoFile: File | null; // V1 still required in UI, but not uploaded yet
 };
 
 export default function SubmitPage() {
@@ -47,20 +47,35 @@ export default function SubmitPage() {
     if (!form.description.trim()) return setError("Description is required.");
     if (tags.length === 0) return setError("Please add at least 1 tag (comma-separated).");
     if (!form.videoFile) return setError("Please choose a video file.");
-
-    // Optional: basic file type check
-    if (!form.videoFile.type.startsWith("video/")) {
-      return setError("Selected file is not a video.");
-    }
+    if (!form.videoFile.type.startsWith("video/")) return setError("Selected file is not a video.");
 
     setIsSubmitting(true);
 
-    // V1 (static): no backend yet → pretend success
-    // Later: call /api/videos/submit (Cloudinary upload + Supabase insert)
-    await new Promise((r) => setTimeout(r, 600));
+    try {
+      const res = await fetch("/api/videos/submit", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: form.title,
+          description: form.description,
+          tags,
+          gradeLevel: form.gradeLevel,
+          schoolType: form.schoolType,
+          // video file upload comes next step (Cloudinary)
+        }),
+      });
 
-    setIsSubmitting(false);
-    router.push("/submit/thanks");
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data?.error || "Submit failed");
+      }
+
+      router.push("/submit/thanks");
+    } catch (err: any) {
+      setError(err?.message ?? "Submit failed");
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
   return (
@@ -70,6 +85,9 @@ export default function SubmitPage() {
         <p className="mt-2 text-sm text-slate-600">
           Share a student-safe story: study tips, AP prep, daily life, or stress-coping experiences.
           <span className="ml-1">（中文：内容保持尊重、适合学生观看；会先审核。）</span>
+        </p>
+        <p className="mt-2 text-xs text-slate-500">
+          Note: V1 saves metadata to the database. Video upload will be connected to Cloudinary next step.
         </p>
       </div>
 
@@ -162,9 +180,6 @@ export default function SubmitPage() {
             className="w-full rounded-lg border px-3 py-2"
             onChange={(e) => update("videoFile", e.target.files?.[0] ?? null)}
           />
-          <p className="text-xs text-slate-500">
-            Tip: keep it short for V1. (Later we’ll enforce size/type on the server.)
-          </p>
         </div>
 
         <button
@@ -178,3 +193,4 @@ export default function SubmitPage() {
     </div>
   );
 }
+

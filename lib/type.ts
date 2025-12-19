@@ -18,7 +18,8 @@ export type Video = {
   schoolType?: SchoolType;
   status: VideoStatus;
   createdAt: string; // ISO string
-  // later:
-  // videoUrl?: string;
-  // thumbnailUrl?: string;
+
+  // for next step (Cloudinary)
+  videoUrl?: string | null;
 };
+
